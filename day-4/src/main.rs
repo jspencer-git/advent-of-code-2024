@@ -1,7 +1,8 @@
+use std::collections::VecDeque;
 use std::{fs::File, io::Read};
 
-fn get_input() -> String {
-    let file = File::open("day-4/input.txt").unwrap();
+fn get_input(path: &str) -> String {
+    let file = File::open(path).unwrap();
     let mut reader = std::io::BufReader::new(file);
 
     let mut input_data = String::new();
@@ -11,16 +12,60 @@ fn get_input() -> String {
 }
 
 fn get_idx_for_dir(idx: i64, dir: (i64, i64), line_width: i64, max_len: i64) -> Option<i64> {
+    let start_line = idx / line_width;
+
     let idx_next = match dir {
         (0, 0) => unreachable!(),
-        (-1, -1) => idx - line_width - 1,
+        (-1, -1) => {
+            let next = idx - line_width - 1;
+            if next / line_width != (start_line - 1) {
+                -1
+            } else {
+                next
+            }
+        }
         (0, -1) => idx - line_width,
-        (1, -1) => idx - line_width + 1,
-        (-1, 0) => idx - 1,
-        (1, 0) => idx + 1,
-        (-1, 1) => idx + line_width - 1,
+        (1, -1) => {
+            let next = idx - line_width + 1;
+            if next / line_width != (start_line - 1) {
+                -1
+            } else {
+                next
+            }
+        }
+        (-1, 0) => {
+            let next = idx - 1;
+            if next / line_width != start_line {
+                -1
+            } else {
+                next
+            }
+        }
+        (1, 0) => {
+            let next = idx + 1;
+            if next / line_width != start_line {
+                -1
+            } else {
+                next
+            }
+        }
+        (-1, 1) => {
+            let next = idx + line_width - 1;
+            if next / line_width != (start_line + 1) {
+                -1
+            } else {
+                next
+            }
+        }
         (0, 1) => idx + line_width,
-        (1, 1) => idx + line_width + 1,
+        (1, 1) => {
+            let next = idx + line_width + 1;
+            if next / line_width != (start_line + 1) {
+                -1
+            } else {
+                next
+            }
+        }
         _ => unreachable!(),
     };
 
@@ -32,8 +77,8 @@ fn get_idx_for_dir(idx: i64, dir: (i64, i64), line_width: i64, max_len: i64) -> 
 }
 
 fn solve(mut input: String) {
-  let line_width = input.lines().next().unwrap().len() as i64;
-  input.retain(|x| x != '\n');
+    let line_width = input.lines().next().unwrap().len() as i64;
+    input.retain(|x| x != '\n');
 
     const DIRS: [(i64, i64); 8] = [
         (-1, -1), // TOP LEFT
@@ -46,143 +91,213 @@ fn solve(mut input: String) {
         (1, 1),   // BOTTOM RIGHT
     ];
     const SEARCH_STR: &str = "XMAS";
-    let search_fn = |first: char, idx: i64, dir: (i64, i64)| -> bool {
-      let mut current = first;
-      let mut next_idx = idx;
-      for ch in SEARCH_STR.chars() {
-        if ch != current {
-          return false;
+    let search_fn = |idx: i64, dir: (i64, i64)| -> bool {
+        let mut next_idx = Some(idx);
+        for ch in SEARCH_STR.chars() {
+            if let Some(nidx) = next_idx {
+                let current = input.chars().nth(nidx as usize).unwrap();
+
+                if ch != current {
+                    return false;
+                }
+
+                next_idx = get_idx_for_dir(nidx, dir, line_width, input.len() as i64);
+            } else {
+                return false;
+            }
         }
 
-        let next_idx_opt = get_idx_for_dir(next_idx, dir, line_width, input.len() as i64);
-        if next_idx_opt.is_none() {
-          if ch == SEARCH_STR.chars().rev().next().unwrap() {
-            return true;
-          }
-
-          return false;
-        }
-
-        next_idx = next_idx_opt.unwrap();
-        current = input.chars().nth(next_idx as usize).unwrap();
-      }
-
-      return true;
+        return true;
     };
 
     let mut sum: i64 = 0;
     for idx in 0..input.len() {
-      for dir in DIRS {
-        let first = input.chars().nth(idx).unwrap();
-        if search_fn(first, idx as i64, dir) {
-          sum += 1;
+        for dir in DIRS {
+            if search_fn(idx as i64, dir) {
+                sum += 1;
+            }
         }
-      }
     }
 
     println!("SUM {}", sum);
 }
 
-fn part_one() {
-    let input = get_input();
-    solve(input);
+fn solve2(mut input: String) {
+    let line_width = input.lines().next().unwrap().len() as i64;
+    input.retain(|x| x != '\n');
 
-    // const SEARCH_STR: &str = "XMAS";
-    // // Brute force search. Won't be winning any prizes for speed.
-    // fn search(input: &str, line_width: usize, to_find: &str, idx: usize, dir: (i64, i64)) -> i64 {
-    //     println!("Searching for {} at index {}", to_find, idx);
-    //     let to_find_front = to_find.chars().next();
-    //     if to_find_front.is_none() {
-    //         return 1;
-    //     }
-    //     let to_find_front = to_find_front.unwrap();
+    const DIRS: [(i64, i64); 4] = [
+        (-1, -1), // TOP LEFT
+        (1, -1),  // TOP RIGHT
+        (-1, 1),  // BOTTOM LEFT
+        (1, 1),   // BOTTOM RIGHT
+    ];
 
-    //     let ch = input.chars().nth(idx);
+    let search_fn = |idx: i64| -> bool {
+        let idxs = [
+            Some(idx),                                                      // Center
+            get_idx_for_dir(idx, (-1, -1), line_width, input.len() as i64), // TOP LEFT
+            get_idx_for_dir(idx, (1, -1), line_width, input.len() as i64),  // TOP RIGHT
+            get_idx_for_dir(idx, (-1, 1), line_width, input.len() as i64),  // BOTTOM LEFT
+            get_idx_for_dir(idx, (1, 1), line_width, input.len() as i64),   // BOTTOM RIGHT
+        ];
 
-    //     if ch.is_none() {
-    //         return 0;
-    //     }
+        let idxs: Vec<i64> = idxs.iter().filter_map(|x| *x).collect();
+        if idxs.len() != 5 {
+            return false;
+        }
 
-    //     let ch = ch.unwrap();
-    //     if ch == '\n' {
-    //         return 0;
-    //     }
+        let current = input.chars().nth(idxs[0] as usize).unwrap();
+        if current != 'A' {
+            return false;
+        }
 
-    //     println!(
-    //         "{} {} {}",
-    //         to_find_front,
-    //         match to_find_front == ch {
-    //             true => "==",
-    //             false => "!=",
-    //         },
-    //         ch
-    //     );
+        let (tl, br) = (
+            input.chars().nth(idxs[1] as usize).unwrap(),
+            input.chars().nth(idxs[4] as usize).unwrap(),
+        );
+        match tl {
+            'S' => {
+                if br != 'M' {
+                    return false;
+                }
+            }
+            'M' => {
+                if br != 'S' {
+                    return false;
+                }
+            }
+            _ => return false,
+        }
 
-    //     if ch != to_find_front {
-    //         return 0;
-    //     }
+        let (tr, bl) = (
+            input.chars().nth(idxs[2] as usize).unwrap(),
+            input.chars().nth(idxs[3] as usize).unwrap(),
+        );
+        match tr {
+            'S' => {
+                if bl != 'M' {
+                    return false;
+                }
+            }
+            'M' => {
+                if bl != 'S' {
+                    return false;
+                }
+            }
+            _ => return false,
+        }
 
-    //     let mut indices = Vec::new();
+        return true;
+    };
 
-    //     if dir == (0, 0) || dir == (-1, -1) {
-    //         indices.push(((-1, -1), idx.checked_sub(line_width + 1).unwrap_or(idx)));
-    //     }
-    //     if dir == (0, 0) || dir == (0, -1) {
-    //         indices.push(((0, -1), idx.checked_sub(line_width).unwrap_or(idx)));
-    //     }
-    //     if dir == (0, 0) || dir == (1, -1) {
-    //         indices.push(((1, -1), idx.checked_sub(line_width - 1).unwrap_or(idx)));
-    //     }
-    //     if dir == (0, 0) || dir == (-1, 0) {
-    //         indices.push(((-1, 0), idx.checked_sub(1).unwrap_or(idx)));
-    //     }
-    //     if dir == (0, 0) || dir == (1, 0) {
-    //         indices.push(((1, 0), idx.checked_add(1).unwrap_or(idx)));
-    //     }
-    //     if dir == (0, 0) || dir == (-1, 1) {
-    //         indices.push(((-1, 1), idx.checked_add(line_width - 1).unwrap_or(idx)));
-    //     }
-    //     if dir == (0, 0) || dir == (0, 1) {
-    //         indices.push(((0, 1), idx.checked_add(line_width).unwrap_or(idx)));
-    //     }
-    //     if dir == (0, 0) || dir == (1, 1) {
-    //         indices.push(((1, 1), idx.checked_add(line_width + 1).unwrap_or(idx)));
-    //     }
+    let mut sum: i64 = 0;
+    for idx in 0..input.len() {
+        if search_fn(idx as i64) {
+            sum += 1;
+        }
+    }
 
-    //     let mut result: i64 = 0;
-    //     for (next_dir, index) in indices {
-    //         if index == idx {
-    //             continue;
-    //         }
-    //         result += search(
-    //             input,
-    //             line_width,
-    //             to_find.get(1..).unwrap_or(""),
-    //             index,
-    //             next_dir,
-    //         );
-    //     }
-
-    //     println!("Result for idx {} = {}", idx, result);
-    //     result
-    // }
-
-    // let mut sum: i64 = 0;
-    // for idx in 0..input.len() {
-    //     sum += search(&input, line_width, SEARCH_STR, idx, (0, 0));
-    // }
-
-    // println!("SUM = {}", sum);
+    println!("SUM {}", sum);
 }
 
-fn part_two() {}
+// fn solve2(mut input: String) {
+//     // RIGHT->LEFT
+//     // TOP->BOTTOM
+//     // BOTTOM->TOP
+//     // DIAG TOP RIGHT BOTTOM LEFT
+//     // DIAG BOTTOM LEFT TOP RIGHT
+//     // DIAG TOP LEFT BOTTOM RIGHT
+//     // DIAG BOTTOM RIGHT TOP LEFT
+
+//     let width = input.lines().next().unwrap().len() as i64;
+//     let height = input.lines().count();
+//     input.retain(|x| x != '\n');
+
+//     const DIRS: [(i64, i64); 8] = [
+//         (-1, -1), // TOP LEFT
+//         (0, -1),  // TOP
+//         (1, -1),  // TOP RIGHT
+//         (-1, 0),  // LEFT
+//         (1, 0),   // RIGHT
+//         (-1, 1),  // BOTTOM LEFT
+//         (0, 1),   // BOTTOM
+//         (1, 1),   // BOTTOM RIGHT
+//     ];
+
+//     // compare at back of vector, so we need to reverse.
+//     let search_str_fwd: Vec<char> = "XMAS".chars().rev().collect();
+//     let search_str_rev: Vec<char> = "XMAS".chars().collect();
+//     let mut sum: i64 = 0;
+
+//     // LEFT->RIGHT
+//     let mut search = search_str_fwd.clone();
+//     let mut search_started = false;
+//     for (i, ch) in input.chars().step_by(1).enumerate() {
+//         if i % width as usize == 0 {
+//            println!("Resetting, EOL");
+
+//             search = search_str_fwd.clone();
+//             search_started = false;
+//         }
+
+//         println!("Checking {} ({}) for {:?}", ch, i, search);
+
+//         let next_search = search.last();
+//         match next_search {
+//             None => {
+//               println!("Found at match at {}", i);
+
+//                 sum += 1;
+//                 search = search_str_fwd.clone();
+//                 search_started = false;
+//                 continue;
+//             }
+//             Some(search_ch) => {
+//                 if ch == *search_ch {
+//                     search.pop();
+//                     search_started = true;
+//                     continue;
+//                 }
+
+//                 // If we didn't match, reset
+//                 if search_started {
+//                     search = search_str_fwd.clone();
+//                     search_started = false;
+//                 }
+
+//                 if ch == *search_ch {
+//                   search.pop();
+//                   search_started = true;
+//                   continue;
+//                 }
+
+//             }
+//         }
+//     }
+
+//     println!("SUM {}", sum);
+// }
+
+fn part_one() {
+    let input = get_input("day-4/input.txt");
+    solve(input);
+}
+
+fn part_two() {
+    let input = get_input("day-4/input.txt");
+    solve2(input);
+}
 
 fn main() {
     println!("Part one:");
-    part_one();
+    // 2306 INCORRECT
+    // 2304 INCORRECT
+    // 2297 CORRECT
+    // part_one();
 
     println!("Part two:");
-    // 2306 INCORRECT
+    // 1475 CORRECT
     part_two();
 }
 
@@ -192,7 +307,13 @@ mod tests {
 
     #[test]
     fn test_solve_1() {
-      let input = "XMAS";
-      solve(input.into());
+        let input = get_input("example-input.txt");
+        solve(input);
+    }
+
+    #[test]
+    fn test_solve_2() {
+        let input = get_input("example-input.txt");
+        solve2(input);
     }
 }
