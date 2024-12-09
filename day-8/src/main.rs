@@ -81,7 +81,59 @@ fn part_one(path: &str) {
     println!("{}", antinodes.len());
 }
 
-fn part_two(path: &str) {}
+fn part_two(path: &str) {
+    let input = get_input(path);
+    let g: Grid<GridElem> = Grid::from_str(&input).unwrap();
+    let mut results_g = g.clone();
+    let mut antennas: HashMap<char, Vec<(i64, i64)>> = HashMap::new();
+    let mut antinodes: HashSet<(i64, i64)> = HashSet::new();
+
+    for (i, elem) in g.data.iter().enumerate() {
+        match elem {
+            GridElem::Object(ch) => {
+                if !antennas.contains_key(ch) {
+                    antennas.insert(*ch, Vec::new());
+                }
+                antennas
+                    .get_mut(ch)
+                    .unwrap()
+                    .push(g.get_xy_from_idx(i).unwrap());
+            }
+            _ => {}
+        }
+    }
+    println!("antennas {:?}", antennas);
+
+    for (_, locations) in antennas.iter() {
+        for loc in locations.iter() {
+            for other in locations.iter() {
+                if other == loc {
+                    continue;
+                }
+
+                let diff = (other.0 - loc.0, other.1 - loc.1);
+
+                let mut antinode_loc = *loc;
+                loop {
+                    if let Some(idx) = g.get_idx_from_xy(antinode_loc) {
+                        antinodes.insert(antinode_loc);
+                        if let GridElem::Object(_) = results_g.get(idx) {
+                        } else {
+                            results_g.set(idx, GridElem::Antinode);
+                        }
+                    } else {
+                        break;
+                    }
+                    antinode_loc = (antinode_loc.0 - diff.0, antinode_loc.1 - diff.1);
+                }
+            }
+        }
+    }
+
+    println!("{}", results_g);
+    println!("{:?}", antinodes);
+    println!("{}", antinodes.len());
+}
 
 fn main() {
     println!("Part one:");

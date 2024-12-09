@@ -68,6 +68,10 @@ where
 
 impl<T> Grid<T> where T: From<char> + fmt::Display {
     pub fn get_idx_from_xy(&self, xy: (i64, i64)) -> Option<usize> {
+        if xy.0 < 0 || xy.1 < 0 || xy.0 >= self.size.0 || xy.1 >= self.size.1 {
+            return None;
+        } 
+
         let idx = xy.1 * self.size.0 + xy.0;
         if idx < 0 || idx >= self.size.0 * self.size.1 {
             return None;
