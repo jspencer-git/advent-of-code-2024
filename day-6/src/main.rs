@@ -32,28 +32,28 @@ struct Grid {
     guard_start: (i64, i64)
 }
 
-impl FromStr for Grid {
-    type Err = ParseGridErr;
+// impl FromStr for Grid {
+//     type Err = ParseGridErr;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let width = s.lines().next().unwrap().len();
-        let height = s.lines().count();
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         let width = s.lines().next().unwrap().len();
+//         let height = s.lines().count();
 
-        let input = 
+//         let input = 
 
-        let mut data: Vec<GridObject> = Vec::new();
-        let mut guard_start = None;
+//         let mut data: Vec<GridObject> = Vec::new();
+//         let mut guard_start = None;
 
-        let mut idx = 0;
-        for ch in s.chars() {
-            match ch {
-                '.' => data.push(Empty); idx += 1,
-                '#' => data.push(GridObject); idx += 1,
-                '^' => guard_start = Some()
-            }
-        }
-    }
-}
+//         let mut idx = 0;
+//         for ch in s.chars() {
+//             match ch {
+//                 '.' => data.push(Empty); idx += 1,
+//                 '#' => data.push(GridObject); idx += 1,
+//                 '^' => guard_start = Some()
+//             }
+//         }
+//     }
+// }
 
 fn part_one(path: &str) {}
 
