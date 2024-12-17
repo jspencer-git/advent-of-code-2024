@@ -1,134 +1,146 @@
-use std::collections::BTreeMap;
-use std::collections::{HashMap, HashSet};
-use std::hash::Hash;
-use std::str::FromStr;
-use std::{collections::VecDeque, fs::File, io::Read};
-use std::{fmt, result};
 use utils::*;
 
-#[derive(Debug, PartialEq)]
-enum BlockType {
-    File(i64),
-    Space,
-}
-#[derive(Debug, PartialEq)]
-struct Block {
-    block_type: BlockType,
-    start: usize,
-    size: usize,
-}
+// let mut input = get_input(path);
+// input.retain(|x| x != '\n');
 
-impl fmt::Display for Block {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self.block_type {
-                BlockType::Space => ".".repeat(self.size),
-                BlockType::File(n) => n.to_string().repeat(self.size),
-            }
-        )
-    }
-}
+// let original: Vec<usize> = input
+//   .chars()
+//   .map(|x| x.to_digit(10).unwrap() as usize)
+//   .collect();
 
-struct Disk {
-    map: BTreeMap<usize, Block>,
-}
+// let mut out: Vec<(i64, usize)> = Vec::new();
 
-impl Disk {
-    fn new() -> Self {
-        Self {
-            map: BTreeMap::new(),
-        }
-    }
-}
+// println!("Original list: {:?}", original);
+// let mut id = 0;
+// let mut is_block = true;
+// for item in original.iter() {
+//   if is_block {
+//     print!("{}", id.to_string().repeat(*item));
+//     id += 1;
+//   } else {
+//     print!("{}", ".".repeat(*item));
+//   }
 
-impl fmt::Display for Disk {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for x in self.map.iter() {
-            write!(f, "{}", x.1)?
-        }
+//   is_block = !is_block;
+// }
 
-        Ok(())
-    }
-}
+// let mut blocks: Vec<(usize, usize)> = original.clone().into_iter().step_by(2).enumerate().collect();
+// let mut blocks_rev: Vec<(usize, usize)> = blocks.clone().into_iter().rev().collect();
+// let spaces: Vec<usize> = original.clone().into_iter().skip(1).step_by(2).collect();
+
+// let mut blocks_zip: Vec<(usize, usize, usize)> = Vec::new();
+// let mut space_idx = 1;
+// for space in spaces.into_iter() {
+//   let mut remaining = space;
+//   let back = blocks_rev.pop();
+//   if back.is_none() {
+//     break;
+//   }
+//   let back = back.unwrap();
+
+//   let res = remaining as i64 - back.1 as i64;
+//   match remaining {
+//     0.. => blocks_zip.push(space_idx, back.i)
+//   }
+// }
 
 fn part_one(path: &str) {
-    let mut input = get_input(path);
-    input.retain(|x| x != '\n');
+  let mut input = get_input(path);
+  input.retain(|x| x != '\n');
 
-    let input_numbers: Vec<usize> = input
-        .chars()
-        .map(|x| x.to_digit(10).unwrap() as usize)
-        .collect();
+  let original: Vec<usize> = input
+    .chars()
+    .map(|x| x.to_digit(10).unwrap() as usize)
+    .collect();
 
-    let mut disk = Disk::new();
+  let mut out: Vec<Option<usize>> = Vec::new();
 
-    let mut id = 0;
-    let mut is_block = true;
-    let mut offset: usize = 0;
-    for n in input_numbers.iter() {
-        if is_block {
-            if *n > 0 {
-                disk.map.insert(
-                    offset,
-                    Block {
-                        block_type: BlockType::File(id),
-                        start: offset,
-                        size: *n,
-                    },
-                );
+  let mut id = 0;
+  for (idx, elem) in original.iter().enumerate() {
+    if idx % 2 == 0 {
+      for _ in 0..*elem {
+        out.push(Some(id));
+      }
+      id += 1;
+    } else {
+      for _ in 0..*elem {
+        out.push(None);
+      }
+    }
+  }
+
+  let mut idx = 0;
+  let mut out_copy: Vec<Option<usize>> = out.clone();
+
+  println!("{:?}", out);
+  for elem in out.iter_mut() {
+    if let None = elem {
+      loop {
+        match out_copy.pop() {
+          None => {
+            println!("{:?}", out_copy);
+            panic!()
+          }
+          Some(n) => match n {
+            None => continue,
+            Some(n) => {
+              *elem = Some(n);
+              println!("Setting elem {} to {:?}", idx, *elem);
+              break;
             }
-            id += 1;
-        } else {
-            if *n > 0 {
-                disk.map.insert(
-                    offset,
-                    Block {
-                        block_type: BlockType::Space,
-                        start: offset,
-                        size: *n,
-                    },
-                );
-            }
+          },
         }
-
-        offset += *n;
-        is_block = !is_block;
+      }
     }
 
-    println!("DISK: {}", disk);
+    println!("IDX: {}, {:?}", idx, *elem);
+    println!("Remaining: {}", out_copy.len());
+    idx += 1;
+    if idx > out_copy.len() {
+      *elem = None;
+    }
+  }
+
+  println!("{:?}", out);
+
+  let result = out
+    .iter()
+    .filter_map(|x| *x)
+    .enumerate()
+    .fold(0, |acc, (idx, x)| acc + (idx * x));
+
+  println!("RESULT = {}", result);
 }
 
 fn part_two(path: &str) {}
 
 fn main() {
-    println!("Part one:");
-    part_one("day-9/input.txt");
+  println!("Part one:");
+  part_one("day-9/input.txt");
 
-    println!("Part two:");
-    part_two("day-9/input.txt");
+  println!("Part two:");
+  part_two("day-9/input.txt");
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+  use super::*;
 
-    #[test]
-    fn test_part_one() {
-        println!(
-            "CWD: {}",
-            std::env::current_dir().unwrap().to_str().unwrap()
-        );
-        part_one("example-input.txt");
-    }
+  #[test]
+  fn test_part_one() {
+    println!(
+      "CWD: {}",
+      std::env::current_dir().unwrap().to_str().unwrap()
+    );
+    part_one("example-input.txt");
+  }
 
-    #[test]
-    fn test_part_two() {
-        println!(
-            "CWD: {}",
-            std::env::current_dir().unwrap().to_str().unwrap()
-        );
-        part_two("example-input.txt");
-    }
+  #[test]
+  fn test_part_two() {
+    println!(
+      "CWD: {}",
+      std::env::current_dir().unwrap().to_str().unwrap()
+    );
+    part_two("example-input.txt");
+  }
 }
